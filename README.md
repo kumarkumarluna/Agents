@@ -95,7 +95,7 @@ ai-agent-fundamentals/
 └── README.md
 ```
 
-### `main.py`
+### `Main_folder/main.py`
 
 Contains the main application logic for:
 
@@ -107,7 +107,7 @@ Contains the main application logic for:
 * Sending tool results back to the LLM
 * Generating the final response
 
-### `tools.py`
+### `tools/tools.py`
 
 Contains custom Python functions that can be exposed to the LLM as tools.
 
