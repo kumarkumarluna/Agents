@@ -8,6 +8,11 @@ from tools.calculator import calculator
 from tools.weather import get_weather
 from tools.time import get_time
 
+tool_registry = {
+    "calculator": calculator,
+    "get_weather": get_weather,
+    "get_time": get_time
+}
 
 load_dotenv()
 
@@ -182,27 +187,13 @@ for iteration in range(max_iterations):
             tool_call.function.arguments
         )
 
-        if tool_name == "calculator":
-
-            result = calculator(
-                arguments["a"],
-                arguments["b"],
-                arguments["operation"]
-            )
-
-        elif tool_name == "get_weather":
-
-            result = get_weather(
-                arguments["city"]
-            )
-
-        elif tool_name == "get_time":
-
-            result = get_time()
+        tool_function = tool_registry.get(tool_name)
+        if(tool_function is None):
+            result = "Unknown tool"
 
         else:
 
-            result = "Unknown tool"
+            result = tool_function(**arguments)
 
         print("Tool executed!")
         print("Tool:", tool_name)

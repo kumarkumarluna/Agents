@@ -1,880 +1,811 @@
+Absolutely. The content you provided has a lot of unnecessary empty code fences and repetition. Here is a **clean, GitHub-ready README.md** for Lesson 5, while keeping the technical concepts and learning progression intact.
+
 # 🤖 AI Agent Fundamentals
 
-A hands-on learning repository for understanding and building **AI Agents from the ground up** using Python, LLM APIs, and tool calling.
+A step-by-step implementation of **AI Agent fundamentals using Python, LLM APIs, tool calling, and agent loops**.
 
-Instead of starting directly with frameworks such as LangChain or LangGraph, this project focuses on understanding the **core mechanics behind agentic AI systems** by implementing them step by step.
-
----
-
-## 🧠 What I Am Learning
-
-This repository focuses on understanding the fundamentals behind AI Agent systems:
-
-* Large Language Models (LLMs)
-* LLM API integration
-* Prompt engineering
-* Environment variables
-* OpenAI-compatible APIs
-* Model selection and discovery
-* Function calling
-* Tool calling
-* Tool schemas
-* Tool execution
-* Passing tool results back to the LLM
-* Agent decision-making
-* Multi-step agent workflows
-* Agent loops
-* Structured outputs
-* Memory
-* RAG
-* Multi-agent systems
+Each Git branch represents a lesson and introduces an important concept involved in building AI agent systems from the ground up.
 
 ---
 
-## 🎯 Project Objective
+## 📚 Current Lesson: Lesson 5 — Tool Registry
 
-The objective of this project is to understand **how AI agents actually work internally** rather than treating frameworks as black boxes.
-
-The project starts with a simple LLM API call and gradually evolves into an agent capable of:
+**Branch:**
 
 ```text
-User
-  ↓
-LLM
-  ↓
-Understand User Request
-  ↓
-Decide Whether a Tool Is Required
-  ↓
-Generate Tool Call
-  ↓
-Application Executes Tool
-  ↓
+lesson-5-tool-registry
+```
+
+This lesson improves the agent architecture by introducing a **Tool Registry**.
+
+Instead of using multiple `if/elif` conditions to determine which Python function should execute, the agent maintains a registry that maps **tool names → Python functions**.
+
+---
+
+## 🎯 What I Am Learning
+
+In this lesson, I am learning:
+
+* Tool Registry
+* Dynamic tool lookup
+* Mapping tool names to Python functions
+* Dynamic function execution
+* `**kwargs` / dictionary unpacking
+* Separation between tool definitions and tool execution
+* Improving agent scalability
+* Reducing hard-coded tool dispatch logic
+* Handling unknown tools
+* Integrating the registry into an agent loop
+
+---
+
+# 🧠 What Is a Tool Registry?
+
+A **Tool Registry** is a mapping between a tool's name and the Python function responsible for executing that tool.
+
+For example:
+
+```python
+tool_registry = {
+    "calculator": calculator,
+    "get_weather": get_weather,
+    "get_time": get_time
+}
+```
+
+When the LLM requests a tool by name, the agent can use the registry to dynamically locate the corresponding Python function.
+
+The basic idea is:
+
+```text
+LLM Tool Name
+      ↓
+Tool Registry
+      ↓
+Python Function
+      ↓
 Tool Result
-  ↓
-LLM
-  ↓
-Final Response
 ```
 
-This provides a foundation for understanding frameworks such as:
+---
 
-* LangChain
-* LangGraph
-* CrewAI
-* AutoGen
-* MCP
-* RAG-based agents
-* Multi-agent architectures
+# 🔄 Before Tool Registry
+
+Previously, the agent could use hard-coded conditional logic:
+
+```python
+if tool_name == "calculator":
+    result = calculator(
+        arguments["a"],
+        arguments["b"],
+        arguments["operation"]
+    )
+
+elif tool_name == "get_weather":
+    result = get_weather(
+        arguments["city"]
+    )
+
+elif tool_name == "get_time":
+    result = get_time()
+
+else:
+    result = "Unknown tool"
+```
+
+This works, but it does not scale well.
+
+If the agent has 20 tools, the execution logic can become a large collection of `if/elif` statements.
 
 ---
 
-## 🛠️ Technologies Used
+# 🚀 After Tool Registry
 
-* **Python**
-* **OpenAI Python SDK**
-* **Groq API**
-* **uv**
-* **python-dotenv**
-* **Git**
-* **GitHub**
+The conditional dispatch logic can be replaced with a registry:
+
+```python
+tool_registry = {
+    "calculator": calculator,
+    "get_weather": get_weather,
+    "get_time": get_time
+}
+```
+
+The agent can dynamically look up the requested function:
+
+```python
+tool_function = tool_registry.get(tool_name)
+```
+
+If the tool exists:
+
+```python
+result = tool_function(**arguments)
+```
+
+If the tool does not exist:
+
+```python
+result = "Unknown tool"
+```
+
+This makes the execution mechanism independent of the number of tools.
 
 ---
 
-## 📁 Project Structure
+# 🔍 How Dynamic Tool Execution Works
+
+Suppose the LLM requests:
+
+```python
+tool_name = "calculator"
+```
+
+The agent performs:
+
+```python
+tool_function = tool_registry.get("calculator")
+```
+
+The registry returns the Python function:
+
+```python
+calculator
+```
+
+Suppose the LLM also provides:
+
+```python
+arguments = {
+    "a": 25,
+    "b": 40,
+    "operation": "multiply"
+}
+```
+
+The agent can execute:
+
+```python
+tool_function(**arguments)
+```
+
+This is equivalent to:
+
+```python
+calculator(
+    a=25,
+    b=40,
+    operation="multiply"
+)
+```
+
+The calculator returns:
 
 ```text
-ai-agent-fundamentals/
-│
-├── main.py
-├── tools.py
-├── pyproject.toml
-├── uv.lock
-├── .env
-├── .gitignore
-└── README.md
+1000
 ```
 
-### `Main_folder/main.py`
+---
 
-Contains the main application logic for:
+# 🏗️ Agent Architecture
 
-* Connecting to the LLM
-* Sending user prompts
-* Defining available tools
-* Receiving tool calls
-* Executing requested tools
-* Sending tool results back to the LLM
-* Generating the final response
+The current architecture is:
 
-### `tools/tools.py`
+```text
+                         USER
+                           │
+                           ▼
+                    ┌─────────────┐
+                    │     LLM     │
+                    └──────┬──────┘
+                           │
+                           │ Tool Call
+                           ▼
+                  ┌─────────────────┐
+                  │  Tool Registry  │
+                  └────────┬────────┘
+                           │
+             ┌─────────────┼─────────────┐
+             ▼             ▼             ▼
+        calculator    get_weather    get_time
+             │             │             │
+             └─────────────┼─────────────┘
+                           │
+                           ▼
+                     Tool Result
+                           │
+                           ▼
+                          LLM
+                           │
+                           ▼
+                     Final Answer
+```
 
-Contains custom Python functions that can be exposed to the LLM as tools.
+---
+
+# 🧩 Available Tools
+
+The current agent contains three tools.
+
+## 1. Calculator
+
+**Tool name:**
+
+```text
+calculator
+```
+
+**Purpose:**
+
+Performs basic arithmetic calculations.
+
+**Supported operations:**
+
+```text
+add
+subtract
+multiply
+divide
+```
 
 Example:
 
-```python
-def calculator(a, b, operation):
-    ...
+```text
+25 × 40
 ```
 
-### `pyproject.toml`
+Result:
 
-Contains project metadata, dependencies, and Python configuration.
-
-### `uv.lock`
-
-Locks the exact versions of project dependencies to ensure reproducible environments.
-
-### `.env`
-
-Stores sensitive environment variables such as API keys.
-
-> `.env` should never be committed to GitHub.
-
-### `.gitignore`
-
-Prevents sensitive and unnecessary files such as `.env` and virtual environments from being committed.
+```text
+1000
+```
 
 ---
 
-## 🔐 Environment Setup
+## 2. Weather
 
-Create a `.env` file in the project root:
+**Tool name:**
 
-```env
-GROQ_API_KEY=your_api_key_here
+```text
+get_weather
 ```
 
-The application loads the API key through environment variables.
+**Purpose:**
 
-Never hard-code API keys directly inside Python source code.
+Returns the weather information for a city.
 
-### Example
+Example:
 
-❌ Do not do this:
+```text
+What's the weather in Chennai?
+```
+
+The LLM can generate a tool call containing:
 
 ```python
-api_key = "gsk_xxxxxxxxxxxxxxxxx"
+{
+    "city": "Chennai"
+}
 ```
 
-✅ Use this instead:
+The registry then maps `get_weather` to the corresponding Python function.
+
+---
+
+## 3. Time
+
+**Tool name:**
+
+```text
+get_time
+```
+
+**Purpose:**
+
+Returns the current local time.
+
+This tool does not require arguments.
+
+Example:
+
+```text
+What is the current time?
+```
+
+---
+
+# 🔗 Tool Definitions vs Tool Registry
+
+One of the most important concepts in this lesson is the distinction between **tool definitions** and the **tool registry**.
+
+They serve different purposes.
+
+## Tool Definitions
+
+The `tools` configuration tells the LLM what tools are available.
+
+It describes:
+
+* Tool name
+* Tool purpose
+* Parameters
+* Parameter types
+* Required arguments
+
+For example:
 
 ```python
-import os
+tools = [
+    # Tool definitions
+]
+```
 
-api_key = os.getenv("GROQ_API_KEY")
+The LLM uses these definitions to decide:
+
+```text
+Which tool should I call?
+What arguments should I provide?
 ```
 
 ---
 
-# ⚙️ Installation
+## Tool Registry
 
-This project uses **uv** for Python environment and dependency management.
+The `tool_registry` tells the Python application which function should actually execute.
 
-## 1. Clone the Repository
-
-```bash
-git clone <your-repository-url>
+```python
+tool_registry = {
+    "calculator": calculator,
+    "get_weather": get_weather,
+    "get_time": get_time
+}
 ```
 
-Navigate into the project:
+Therefore:
 
-```bash
-cd ai-agent-fundamentals
+```text
+Tool Definitions
+        ↓
+Tell the LLM WHAT tools are available
+
+
+Tool Registry
+        ↓
+Tell Python WHICH function to execute
+```
+
+This separation is an important architectural concept.
+
+---
+
+# 🔄 Agent Execution Flow
+
+For example, consider the user request:
+
+```text
+Calculate 25 * 40 and tell me the weather in Chennai and the current time.
+```
+
+The agent may execute multiple iterations.
+
+## Iteration 1 — Calculator
+
+The LLM requests:
+
+```text
+calculator
+```
+
+Arguments:
+
+```json
+{
+    "a": 25,
+    "b": 40,
+    "operation": "multiply"
+}
+```
+
+Registry lookup:
+
+```python
+tool_registry.get("calculator")
+```
+
+Execution:
+
+```python
+calculator(**arguments)
+```
+
+Result:
+
+```text
+1000
 ```
 
 ---
 
-## 2. Create the Virtual Environment
+## Iteration 2 — Weather
 
-```bash
-uv venv
+The LLM requests:
+
+```text
+get_weather
+```
+
+Arguments:
+
+```json
+{
+    "city": "Chennai"
+}
+```
+
+The registry finds the corresponding Python function:
+
+```python
+get_weather
+```
+
+Execution:
+
+```python
+get_weather(**arguments)
+```
+
+Result:
+
+```text
+32°C, sunny
+```
+
+> The exact weather result depends on the implementation of the weather tool.
+
+---
+
+## Iteration 3 — Time
+
+The LLM requests:
+
+```text
+get_time
+```
+
+The tool requires no arguments.
+
+Execution:
+
+```python
+get_time()
+```
+
+Result:
+
+```text
+Current local time
 ```
 
 ---
 
-## 3. Activate the Environment
+## Iteration 4 — Final Answer
 
-### Windows PowerShell
+Once the LLM has all the required tool results, it produces the final response to the user.
 
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-### Windows CMD
-
-```cmd
-.venv\Scripts\activate
-```
-
-### Linux / macOS
-
-```bash
-source .venv/bin/activate
+```text
+Tool Calls
+    ↓
+Tool Results
+    ↓
+LLM
+    ↓
+Final Answer
 ```
 
 ---
 
-## 4. Install Dependencies
+# 💡 Why Tool Registry Matters
 
-If dependencies are already defined in `pyproject.toml`:
+Without a registry:
+
+```text
+Tool 1 → if
+Tool 2 → elif
+Tool 3 → elif
+Tool 4 → elif
+Tool 5 → elif
+...
+```
+
+With a registry:
+
+```text
+Tool Name
+    │
+    ▼
+Tool Registry
+    │
+    ▼
+Python Function
+```
+
+The registry provides a cleaner separation between:
+
+1. **What tool the LLM requested**
+2. **Which Python function implements that tool**
+3. **How that function is executed**
+
+---
+
+# ➕ Adding a New Tool
+
+Suppose a new `search` tool is added:
+
+```python
+from tools.search import search
+```
+
+The registry can be extended:
+
+```python
+tool_registry = {
+    "calculator": calculator,
+    "get_weather": get_weather,
+    "get_time": get_time,
+    "search": search
+}
+```
+
+The core execution logic does not need another `elif`.
+
+This is the main scalability advantage of the registry pattern.
+
+---
+
+# 🛡️ Handling Unknown Tools
+
+The registry also provides a simple way to handle invalid or unknown tool names.
+
+```python
+tool_function = tool_registry.get(tool_name)
+
+if tool_function:
+    result = tool_function(**arguments)
+else:
+    result = "Unknown tool"
+```
+
+For example:
+
+```text
+LLM requests:
+"send_email"
+
+        ↓
+
+Registry lookup
+
+        ↓
+
+No matching function
+
+        ↓
+
+"Unknown tool"
+```
+
+This prevents the agent from attempting to execute a function that does not exist in the registry.
+
+---
+
+# 🛠️ Technologies Used
+
+* Python 3.13
+* OpenAI Python SDK
+* Groq API
+* OpenAI-compatible API
+* uv
+* python-dotenv
+* Git
+* GitHub
+
+---
+
+# 📁 Project Structure
+
+```text
+Agents/
+│
+├── Main_folder/
+│   ├── agent_loop.py
+│   ├── main.py
+│   └── multi_agent_call_Main.py
+│
+├── tools/
+│   ├── calculator.py
+│   ├── weather.py
+│   └── time.py
+│
+├── .env
+├── .gitignore
+├── pyproject.toml
+├── README.md
+└── uv.lock
+```
+
+> Keep `.env` out of Git. API keys and other secrets should never be committed to the repository.
+
+---
+
+# ▶️ Running the Agent
+
+## 1. Install Dependencies
+
+Synchronize the project environment using `uv`:
 
 ```bash
 uv sync
 ```
 
----
+## 2. Configure Environment Variables
 
-## 5. Configure Environment Variables
+Create a `.env` file and add the required API credentials.
 
-Create a `.env` file:
+Example:
 
 ```env
 GROQ_API_KEY=your_api_key_here
 ```
 
+Do not commit the `.env` file.
+
 ---
 
-## 6. Run the Application
+## 3. Run the Agent
 
 ```bash
-uv run main.py
+uv run python Main_folder/agent_loop.py
+```
+
+The agent will:
+
+1. Send the user request to the LLM.
+2. Allow the LLM to select a tool.
+3. Extract the requested tool name.
+4. Look up the function in the tool registry.
+5. Execute the function.
+6. Send the tool result back to the LLM.
+7. Continue the agent loop.
+8. Stop when the LLM produces a final answer or the iteration limit is reached.
+
+---
+
+# 🧠 Key Learning
+
+The main lesson from this branch is:
+
+> **The LLM decides which tool should be used, while the Tool Registry allows the Python agent to dynamically locate and execute the corresponding function.**
+
+The registry separates **tool selection** from **tool execution** and makes the agent easier to extend.
+
+The important mental model is:
+
+```text
+                    LLM
+                     │
+                     │ decides
+                     ▼
+                 Tool Name
+                     │
+                     ▼
+              Tool Registry
+                     │
+                     │ lookup
+                     ▼
+              Python Function
+                     │
+                     │ execute
+                     ▼
+                Tool Result
+                     │
+                     ▼
+                    LLM
 ```
 
 ---
 
-# 🔧 Tool Calling Architecture
-
-The current implementation demonstrates the fundamental tool-calling workflow.
+# 📈 Learning Roadmap
 
 ```text
-                    ┌─────────────────┐
-                    │      User       │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │       LLM       │
-                    │                 │
-                    │ Understands     │
-                    │ user request    │
-                    └────────┬────────┘
-                             │
-                    Tool required?
-                       /          \
-                     No            Yes
-                     │              │
-                     │              ▼
-                     │       ┌───────────────┐
-                     │       │  Tool Call    │
-                     │       │               │
-                     │       │ name + args   │
-                     │       └───────┬───────┘
-                     │               │
-                     │               ▼
-                     │       ┌───────────────┐
-                     │       │ Python Tool   │
-                     │       │ Execution     │
-                     │       └───────┬───────┘
-                     │               │
-                     │               ▼
-                     │       ┌───────────────┐
-                     │       │ Tool Result   │
-                     │       └───────┬───────┘
-                     │               │
-                     └───────┬───────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │       LLM       │
-                    │                 │
-                    │ Generate final  │
-                    │ response        │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │     Response    │
-                    └─────────────────┘
+Lesson 1
+│
+├── LLM API Basics
+│
+▼
+Lesson 2
+│
+├── Tool Calling
+│
+▼
+Lesson 3
+│
+├── Multiple Tool Calling
+│
+▼
+Lesson 4
+│
+├── Agent Loop
+│
+▼
+Lesson 5 ← CURRENT
+│
+├── Tool Registry
+│
+▼
+Next Lessons
+│
+├── Dynamic Tool Registration
+├── Better Agent Architecture
+├── Error Handling
+├── Structured Tool Execution
+├── Memory
+├── Planning
+├── RAG
+├── Multi-Agent Systems
+└── Production AI Agents
 ```
 
-The important concept is that the **LLM does not directly execute Python code**.
+---
 
-Instead:
+# 🚀 Long-Term Goal
+
+The goal of this repository is to understand how modern AI agent systems work **under the hood**, rather than simply using an agent framework without understanding its internal mechanisms.
+
+The core architecture being developed is:
 
 ```text
 LLM
  ↓
-Requests a tool
- ↓
-Application receives request
- ↓
-Application executes Python function
- ↓
-Application sends result to LLM
- ↓
-LLM generates final answer
-```
-
-This separation between **reasoning/decision-making and tool execution** is fundamental to agent architecture.
-
----
-
-# 🧮 Example Tool: Calculator
-
-The current project contains a simple calculator tool.
-
-It can perform operations such as:
-
-```text
-Addition
-Subtraction
-Multiplication
-Division
-```
-
-For example, the user might ask:
-
-```text
-What is 25 × 4?
-```
-
-The LLM can determine that a calculator tool is required.
-
-It may generate a structured tool call similar to:
-
-```json
-{
-  "name": "calculator",
-  "arguments": {
-    "a": 25,
-    "b": 4,
-    "operation": "multiply"
-  }
-}
-```
-
-The Python application receives this request and executes:
-
-```python
-calculator(25, 4, "multiply")
-```
-
-The tool returns:
-
-```text
-100
-```
-
-The result is then passed back to the LLM.
-
-The LLM can finally generate:
-
-```text
-25 × 4 = 100
-```
-
----
-
-# 🔄 Basic Agent Workflow
-
-The current implementation can be understood as:
-
-```text
-1. Receive user input
-        ↓
-2. Send input + available tools to LLM
-        ↓
-3. LLM analyzes the request
-        ↓
-4. LLM decides whether a tool is required
-        ↓
-5. LLM generates structured tool call
-        ↓
-6. Application executes the tool
-        ↓
-7. Tool returns result
-        ↓
-8. Result is sent back to LLM
-        ↓
-9. LLM generates final response
-        ↓
-10. Return response to user
-```
-
-This is the foundation on which more advanced agent loops are built.
-
----
-
-# 🧩 Important Concepts
-
-## LLM
-
-A Large Language Model processes natural-language input and generates responses based on its learned patterns and the context provided to it.
-
-In an agent system, the LLM acts as the **decision-making component**.
-
----
-
-## Tool
-
-A tool is an external capability that the LLM can request the application to execute.
-
-Examples:
-
-```text
-Calculator
-Web Search
-Database Query
-Weather API
-File Reader
-Email Sender
-Code Executor
-```
-
----
-
-## Tool Calling
-
-Tool calling allows an LLM to generate a structured request for a specific function.
-
-For example:
-
-```json
-{
-  "name": "calculator",
-  "arguments": {
-    "a": 10,
-    "b": 20,
-    "operation": "add"
-  }
-}
-```
-
-The application then executes the requested function.
-
----
-
-## Function Calling vs Tool Calling
-
-Function calling generally refers to the model requesting execution of a defined function.
-
-Tool calling is the broader concept of allowing the model to interact with external capabilities.
-
-In modern LLM APIs, the terminology may vary between providers.
-
----
-
-## Agent
-
-A basic agent can be thought of as:
-
-```text
-LLM + Tools + Execution Loop
-```
-
-A more capable agent may additionally include:
-
-```text
-LLM
-+
-Tools
-+
-Memory
-+
-Planning
-+
-State
-+
-Observation
-+
-Execution
-```
-
----
-
-# 📚 Learning Roadmap
-
-## Phase 1 — LLM Fundamentals
-
-* [x] Python environment setup
-* [x] LLM API integration
-* [x] Environment variable configuration
-* [x] Model discovery
-* [x] Basic LLM prompting
-
-## Phase 2 — Tool Calling
-
-* [x] Function definition
-* [x] Tool definition
-* [x] Tool schema
-* [x] Tool calling
-* [x] Tool execution
-* [x] Returning tool results
-* [x] Final LLM response
-
-## Phase 3 — Agent Fundamentals
-
-* [ ] Multiple tools
-* [ ] Tool selection
-* [ ] Better tool schemas
-* [ ] Tool validation
-* [ ] Agent loops
-* [ ] Multi-step execution
-* [ ] Error handling
-* [ ] Retry mechanisms
-* [ ] State management
-
-## Phase 4 — Advanced Agent Capabilities
-
-* [ ] Structured outputs
-* [ ] Memory
-* [ ] Planning
-* [ ] Reflection
-* [ ] Web search
-* [ ] Database tools
-* [ ] File tools
-* [ ] API integrations
-
-## Phase 5 — RAG
-
-* [ ] Document loading
-* [ ] Text extraction
-* [ ] Chunking
-* [ ] Embeddings
-* [ ] Vector databases
-* [ ] Similarity search
-* [ ] Retrieval
-* [ ] Context injection
-* [ ] RAG-powered agents
-
-## Phase 6 — Agent Frameworks
-
-* [ ] LangChain
-* [ ] LangGraph
-* [ ] CrewAI
-* [ ] AutoGen
-* [ ] MCP
-* [ ] Multi-agent systems
-
-## Phase 7 — Production Agents
-
-* [ ] Authentication
-* [ ] Authorization
-* [ ] Observability
-* [ ] Logging
-* [ ] Evaluation
-* [ ] Guardrails
-* [ ] Rate limiting
-* [ ] Error recovery
-* [ ] Cost optimization
-* [ ] Deployment
-* [ ] Monitoring
-
----
-
-# 🚀 Evolution of the Project
-
-The repository is intentionally designed to evolve incrementally.
-
-### Stage 1
-
-```text
-User
- ↓
-LLM
- ↓
-Response
-```
-
-### Stage 2
-
-```text
-User
- ↓
-LLM
- ↓
-Tool
- ↓
-Result
- ↓
-LLM
- ↓
-Response
-```
-
-### Stage 3
-
-```text
-User
- ↓
-Agent
+Decision Making
  ↓
 Tool Selection
  ↓
-Tool Execution
- ↓
-Observation
- ↓
-Next Decision
- ↓
-Tool / Response
-```
-
-### Stage 4
-
-```text
-                ┌──────────────┐
-                │     User     │
-                └──────┬───────┘
-                       ↓
-                ┌──────────────┐
-                │    Agent     │
-                └──────┬───────┘
-                       ↓
-          ┌────────────┼────────────┐
-          ↓            ↓            ↓
-       Search       Database     Calculator
-          ↓            ↓            ↓
-          └────────────┼────────────┘
-                       ↓
-                    Result
-                       ↓
-                    Agent
-                       ↓
-                  Final Answer
-```
-
-### Final Goal
-
-Eventually, the project will evolve toward:
-
-```text
-                    ┌─────────────┐
-                    │    User     │
-                    └──────┬──────┘
-                           ↓
-                    ┌─────────────┐
-                    │ AI Agent    │
-                    └──────┬──────┘
-                           ↓
-              ┌────────────┴────────────┐
-              │                         │
-              ↓                         ↓
-          Planning                   Memory
-              │                         │
-              └────────────┬────────────┘
-                           ↓
-                    Tool Selection
-                           ↓
-          ┌────────────────┼────────────────┐
-          ↓                ↓                ↓
-       Web Tool        DB Tool          RAG Tool
-          ↓                ↓                ↓
-          └────────────────┼────────────────┘
-                           ↓
-                       Observation
-                           ↓
-                    Next Agent Step
-                           ↓
-                     Final Response
-```
-
----
-
-# 📝 Learning Philosophy
-
-This repository follows a **build-from-first-principles** approach.
-
-Instead of immediately using high-level abstractions, each concept is implemented and understood individually.
-
-The learning progression is:
-
-```text
-LLM
- ↓
-Prompting
- ↓
-API Integration
- ↓
-Tools
- ↓
 Tool Calling
  ↓
+Tool Registry
+ ↓
 Tool Execution
+ ↓
+Tool Results
  ↓
 Agent Loop
  ↓
-Memory
- ↓
-RAG
- ↓
-Frameworks
- ↓
-Multi-Agent Systems
- ↓
-Production Architecture
+Final Answer
 ```
 
-Each major feature is implemented incrementally and documented through Git commits.
+These fundamentals will later be used to build more advanced systems involving:
 
-This repository serves as a practical record of my progress in:
-
-* AI Engineering
-* LLM Application Development
-* Agentic AI
-* Tool Calling
 * RAG
-* Agent Architecture
+* Memory
+* Planning
 * Multi-Agent Systems
-
----
-
-# 🎯 Goal
-
-The ultimate goal is to develop a strong practical understanding of **agentic AI architecture** and be able to build AI agents both:
-
-1. **From scratch**, using LLM APIs and custom Python logic.
-2. **Using modern frameworks**, such as LangChain and LangGraph.
-
-The project will eventually progress from a simple LLM application into a complete agentic system capable of:
-
-```text
-Reasoning
-+
-Tool Usage
-+
-Multi-Step Execution
-+
-Memory
-+
-RAG
-+
-External APIs
-+
-Database Interaction
-+
-Planning
-+
-Multi-Agent Collaboration
-```
-
----
-
-# 🔒 Security
-
-Never commit sensitive information such as:
-
-```text
-.env
-API Keys
-Access Tokens
-Passwords
-Database Credentials
-Private Keys
-Cloud Credentials
-```
-
-The `.env` file should be included in `.gitignore`.
-
-Example:
-
-```gitignore
-.env
-.venv/
-__pycache__/
-*.pyc
-```
-
-If an API key is accidentally pushed to GitHub:
-
-1. Revoke the exposed key immediately.
-2. Generate a new key.
-3. Remove the secret from the repository history if necessary.
-4. Update the local `.env` file.
-5. Verify that the new key is not exposed.
-
----
-
-# 📌 Current Status
-
-**Status:** 🚧 Active Development
-
-The project currently focuses on:
-
-```text
-LLM API
-   ↓
-Tool Definition
-   ↓
-Tool Calling
-   ↓
-Tool Execution
-   ↓
-Tool Result
-   ↓
-Final LLM Response
-```
-
-Future commits will progressively introduce more advanced agent capabilities.
+* MCP
+* Production-oriented AI applications
 
 ---
 
 ## ⭐ Key Takeaway
 
-The purpose of this project is not simply to **use an AI agent framework**.
-
-The purpose is to understand:
-
-> **What actually happens inside an AI agent when it decides to use a tool, executes that tool, observes the result, and continues the task.**
-
-Understanding these fundamentals makes higher-level agent frameworks significantly easier to learn and debug.
-
----
-
-## 📈 Learning Progress
+A Tool Registry is a simple architectural pattern, but it solves an important problem:
 
 ```text
-[████████░░░░░░░░░░░░] AI Agent Fundamentals
-
-Completed:
-✓ LLM API Integration
-✓ Prompting
-✓ Tool Definition
-✓ Tool Calling
-✓ Tool Execution
-✓ Tool Result Handling
-
-Upcoming:
-→ Multiple Tools
-→ Agent Loops
-→ Memory
-→ RAG
-→ LangChain
-→ LangGraph
-→ MCP
-→ Multi-Agent Systems
+Hard-coded dispatch logic
+            ↓
+     Tool Registry
+            ↓
+Dynamic tool execution
 ```
 
----
+Instead of teaching the agent loop how to execute every individual tool, the registry provides a **central mapping between tool names and executable Python functions**.
 
-## 👨‍💻 Author
-
-**Hari Prakash**
-
-Computer Science & Engineering Student
-
-Focused on:
-
-* Java Backend Development
-* AI Engineering
-* Generative AI
-* Agentic AI
-* RAG
-* Problem Solving
-* System Design
-
----
-
-⭐ This repository is continuously evolving as I learn and implement new AI Agent concepts.
+That makes the system easier to extend, maintain, and reason about as the number of tools grows.
