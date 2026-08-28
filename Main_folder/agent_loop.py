@@ -4,15 +4,16 @@ import json
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from tools.ToolRegistry import ToolRegistry
 from tools.calculator import calculator
 from tools.weather import get_weather
 from tools.time import get_time
 
-tool_registry = {
-    "calculator": calculator,
-    "get_weather": get_weather,
-    "get_time": get_time
-}
+
+
+
+
+
 
 load_dotenv()
 
@@ -21,65 +22,70 @@ client = OpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
-tools = [
-    {
-        "type": "function",
-        "function": {
-            "name": "calculator",
-            "description": "Perform basic arithmetic calculations.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "a": {
-                        "type": "number"
-                    },
-                    "b": {
-                        "type": "number"
-                    },
-                    "operation": {
-                        "type": "string",
-                        "enum": [
-                            "add",
-                            "subtract",
-                            "multiply",
-                            "divide"
-                        ]
-                    }
-                },
-                "required": ["a", "b", "operation"]
-            }
-        }
-    },
 
-    {
-        "type": "function",
-        "function": {
-            "name": "get_weather",
-            "description": "Get the weather for a city.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "city": {
-                        "type": "string"
-                    }
+calculator_schema = {
+    "type": "function",
+    "function": {
+        "name": "calculator",
+        "description": "Perform basic arithmetic calculations.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "a": {
+                    "type": "number"
                 },
-                "required": ["city"]
-            }
-        }
-    },
-
-    {
-        "type": "function",
-        "function": {
-            "name": "get_time",
-            "description": "Get the current local time.",
-            "parameters": {
-                "type": "object",
-                "properties": {}
-            }
+                "b": {
+                    "type": "number"
+                },
+                "operation": {
+                    "type": "string",
+                    "enum": [
+                        "add",
+                        "subtract",
+                        "multiply",
+                        "divide"
+                    ]
+                }
+            },
+            "required": ["a", "b", "operation"]
         }
     }
-]
+}
+
+get_weather_schema = {
+    "type": "function",
+    "function": {
+        "name": "get_weather",
+        "description": "Get the weather for a city.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string"
+                }
+            },
+            "required": ["city"]
+        }
+    }
+}
+
+get_time_schema = {
+    "type": "function",
+    "function": {
+        "name": "get_time",
+        "description": "Get the current local time.",
+        "parameters": {
+            "type": "object",
+            "properties": {}
+        }
+    }
+}
+
+registry = ToolRegistry()
+registry.register("calculator",calculator,calculator_schema)
+registry.register("get_weather",get_weather,get_weather_schema)
+registry.register("get_time",get_time,get_time_schema)
+
 
 messages = [
     {
@@ -96,64 +102,6 @@ messages = [
 
     }
 ]
-# Your# current
-    # loop
-    # should
-    # have
-    # a
-    # maximum
-    # iteration
-    # limit.
-    #
-    # Don
-    # 't blindly use:
-    #
-    # while True:
-    #
-    # in a
-    # real
-    # agent.
-    #
-    # If
-    # the
-    # model
-    # keeps
-    # requesting
-    # tools
-    # due
-    # to
-    # a
-    # bug or unexpected
-    # behavior, your
-    # program
-    # could
-    # keep
-    # looping and consume
-    # API
-    # calls.
-
-# while True:
-#
-#     response = client.chat.completions.create(
-#         model="openai/gpt-oss-20b",
-#         messages=messages,
-#         tools=tools
-#     )
-#
-#     message = response.choices[0].message
-#
-#     print("Model response:")
-#     print(message)
-#
-#     if not message.tool_calls:
-#
-#         print("Final answer:")
-#         print(message.content)
-#
-#         break
-#
-#     messages.append(message)
-
 
 max_iterations = 10
 
@@ -164,7 +112,7 @@ for iteration in range(max_iterations):
     response = client.chat.completions.create(
         model="openai/gpt-oss-20b",
         messages=messages,
-        tools=tools
+        tools= registry.get_schemas()
     )
 
     message = response.choices[0].message
@@ -187,12 +135,12 @@ for iteration in range(max_iterations):
             tool_call.function.arguments
         )
 
-        tool_function = tool_registry.get(tool_name)
-        if(tool_function is None):
+        tool = registry.get(tool_name)
+        if(tool is None):
             result = "Unknown tool"
 
         else:
-
+            tool_function = tool["function"]
             result = tool_function(**arguments)
 
         print("Tool executed!")
